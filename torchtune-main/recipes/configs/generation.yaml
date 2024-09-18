@@ -1,0 +1,58 @@
+
+
+
+# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run generate --config generation
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama3_1.llama3_1_8b
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /home/vdhee/scratch/LLMcode/Train/full_finetuning_results-2/output-0.5-0.3
+  checkpoint_files: [
+    hf_model_0001_22.pt,
+   hf_model_0002_22.pt,
+    hf_model_0003_22.pt,
+    hf_model_0004_22.pt
+  ]
+  output_dir:  /home/vdhee/scratch/LLMcode/Train/full_finetuning_results-2/output-0.5-0.3
+  model_type: LLAMA3
+
+device: cuda
+dtype: bf16
+
+seed: 1234
+
+# Tokenizer arguments
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /home/vdhee/scratch/LLMcode/Train/models/original/tokenizer.model
+  max_seq_len: null
+
+# Generation arguments; defaults taken from gpt-fast
+
+
+prompt: |
+  You are an expert Python code generator. Your task is to generate clean, efficient, and correct Python code based on the provided problem. Follow these strict guidelines:
+      1. Only write the Python function. Do not include any additional comments, explanations, or repeated code.
+      2. Ensure the code has proper indentation and formatting for readability.
+      3. The function should appear only once in the output. No additional text or instructions.
+      4. Do not explain the code or make any follow-up corrections.
+
+  Question: Write a function to find the minimum total path sum in the given triangle.
+  Answer:
+
+instruct_template: null
+chat_format: null
+max_new_tokens: 300
+temperature: 0.0 # 0.8 and 0.6 are popular values to try
+top_k: 300
+# It is recommended to set enable_kv_cache=False for long-context models like Llama3.1
+enable_kv_cache: False
+
+quantizer: null
+

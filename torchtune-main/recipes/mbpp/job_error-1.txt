@@ -1,0 +1,86 @@
+
+Due to MODULEPATH changes, the following have been reloaded:
+  1) arrow/14.0.1
+
+[2024-09-03 13:54:04,748] torch.distributed.run: [WARNING] 
+[2024-09-03 13:54:04,748] torch.distributed.run: [WARNING] *****************************************
+[2024-09-03 13:54:04,748] torch.distributed.run: [WARNING] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+[2024-09-03 13:54:04,748] torch.distributed.run: [WARNING] *****************************************
+INFO:torchtune.utils.logging:Running LoRAFinetuneRecipeDistributed with resolved config:
+
+batch_size: 2
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /home/vdhee/scratch/LLMcode/Train/models/
+  checkpoint_files:
+  - model-00001-of-00004.safetensors
+  - model-00002-of-00004.safetensors
+  - model-00003-of-00004.safetensors
+  - model-00004-of-00004.safetensors
+  model_type: LLAMA3
+  output_dir: /home/vdhee/scratch/LLMcode/Train/models/output
+  recipe_checkpoint: null
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+device: cuda
+dtype: bf16
+enable_activation_checkpointing: false
+epochs: 1
+gradient_accumulation_steps: 32
+log_every_n_steps: 1
+log_peak_memory_stats: false
+loss:
+  _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+max_steps_per_epoch: null
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: /tmp/lora_finetune_output
+model:
+  _component_: torchtune.models.llama3_1.lora_llama3_1_8b
+  apply_lora_to_mlp: false
+  apply_lora_to_output: false
+  lora_alpha: 16
+  lora_attn_modules:
+  - q_proj
+  - v_proj
+  lora_rank: 8
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 0.0003
+  weight_decay: 0.01
+output_dir: /tmp/lora_finetune_output
+resume_from_checkpoint: false
+save_adapter_weights_only: false
+seed: null
+shuffle: true
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  max_seq_len: null
+  path: /home/vdhee/scratch/LLMcode/Train/models/original/tokenizer.model
+
+DEBUG:torchtune.utils.logging:Setting manual seed to local seed 1888549021. Local seed is seed + rank = 1888549021 + 0
+INFO:torchtune.utils.logging:FSDP is enabled. Instantiating Model on CPU for Rank 0 ...
+INFO:torchtune.utils.logging:Model instantiation took 15.37 secs
+INFO:torchtune.utils.logging:Memory stats after model init:
+	GPU peak memory allocation: 11.40 GiB
+	GPU peak memory reserved: 12.49 GiB
+	GPU peak memory active: 11.40 GiB
+INFO:torchtune.utils.logging:Loss is initialized.
+INFO:torchtune.utils.logging:Optimizer and loss are initialized.
+INFO:torchtune.utils.logging:Loss is initialized.
+INFO:torchtune.utils.logging:Learning rate scheduler is initialized.
+WARNING:torchtune.utils.logging: Profiling disabled.
+INFO:torchtune.utils.logging: Profiler config after instantiation: {'enabled': False}
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:23<00:23, 23.87s/it]1|1|Loss: 29.537994384765625:  50%|█████     | 1/2 [00:23<00:23, 23.87s/it]1|1|Loss: 29.537994384765625: 100%|██████████| 2/2 [00:46<00:00, 22.97s/it]1|2|Loss: 29.662309646606445: 100%|██████████| 2/2 [00:46<00:00, 22.97s/it]INFO:torchtune.utils.logging:Model checkpoint of size 4.98 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/hf_model_0001_0.pt
+INFO:torchtune.utils.logging:Model checkpoint of size 5.00 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/hf_model_0002_0.pt
+INFO:torchtune.utils.logging:Model checkpoint of size 4.92 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/hf_model_0003_0.pt
+INFO:torchtune.utils.logging:Model checkpoint of size 1.17 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/hf_model_0004_0.pt
+INFO:torchtune.utils.logging:Adapter checkpoint of size 0.01 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/adapter_0.pt
+INFO:torchtune.utils.logging:Adapter checkpoint of size 0.01 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/adapter_model.bin
+INFO:torchtune.utils.logging:Adapter checkpoint of size 0.00 GB saved to /home/vdhee/scratch/LLMcode/Train/models/output/adapter_config.json
+INFO:torchtune.utils.logging:Saving final epoch checkpoint.
+INFO:torchtune.utils.logging:The full model checkpoint, including all weights and configurations, has been saved successfully.You can now use this checkpoint for further training or inference.
+1|2|Loss: 29.662309646606445: 100%|██████████| 2/2 [01:42<00:00, 51.37s/it]
