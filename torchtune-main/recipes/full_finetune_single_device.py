@@ -17,6 +17,7 @@ import random
 from datasets import load_from_disk
 from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset
+from torchtune.config._utils import _get_component_from_path
 
 import torch
 from omegaconf import DictConfig, ListConfig
@@ -39,7 +40,9 @@ log = utils.get_logger("DEBUG")
 
 
 ds = load_from_disk('/home/vdhee/scratch/LLMcode/Train/Dataset/mbpp2')
-new = concatenate_datasets([ds['train'], ds['test'], ds['validation']])
+new1 = concatenate_datasets([ds['train'], ds['test'], ds['validation']])
+
+new = new1.filter(lambda example: example['task_id'] != 721)
 
 pkl_file = '/home/vdhee/scratch/LLMcode/Train/Dataset/variable_1.pkl'
 with open(pkl_file, 'rb') as f:
@@ -63,7 +66,7 @@ for c in data:
         cots[c["question_id"]][num] = c[f"Test Case {num+1}"]
         
         
-json_data=json.load(open("/home/vdhee/scratch/LLMcode/Train/Dataset/output-1.json"))
+json_data=json.load(open("/home/vdhee/scratch/LLMcode/Train/Dataset/output-final.json"))
 
 # def generate_a2_prompts(input_main, output_main, input_a1, output_a1,  input_a2, output_a2, cots):
 #     prompts = []
@@ -225,7 +228,7 @@ Ground Truth Code:
 
 
 class dataset(Dataset):
-    def __init__(self, data, tokenizer, json_data,  max_length = 1024, batch_size=4, lambda_1=1.0):
+    def __init__(self, data, tokenizer, json_data,  max_length = 1024, batch_size=4, lambda_1=0.3):
         self.data = data
         self.code_gen = data.select_columns(['task_id', 'prompt', 'code'])
         self.aux_data = data.select_columns(['task_id', 'prompt', 'code', 'test_imports', 'test_list', 'variables'])
@@ -253,46 +256,26 @@ class dataset(Dataset):
         return new_id
   
     def process_code(self, id):
-        code_gen = "Question: " + self.code_gen[id]['prompt'] + "\nFor example, this is how the function name and number of arguments shouls look like: " + self.ls[id]["test_list"][0].split("assert ")[1].strip() +'\n' + "Answer:\n"
-        out="```python " + self.code_gen[id]['code'] + "```"
+        task_id=self.code_gen[id]["task_id"]
+        i=random.sample(range(len(self.ls[id]["test_list"])),1)
+        print(task_id)
+        cot=cots[task_id][i[0]].split("Test Case ")[1].strip()[2:].strip()
+        input_pr=self.apply_chat_template(self.code_gen[id]['prompt'], self.ls[id]["test_list"][i[0]])
+        #code_gen = "Question: " + self.code_gen[id]['prompt'] + "\nFor example, this is how the function name and number of arguments shouls look like: " + self.ls[id]["test_list"][0].split("assert ")[1].strip() +'\n' + "Answer:\n"
+        out=self.code_gen[id]['code'] + "\n" + cot
         # print(code_gen)
-        return code_gen, out
-  
+        return input_pr, out
+    
+        
+    
+    def apply_chat_template(self, user_prompt, assertion):
+        prompt_template = f"""<|start_header_id|>user<|end_header_id|>\n\n{user_prompt}\n\nYour code should satisfy the following assertion:\n{assertion}<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>\n\nHere is a solution to this programming problem:\n```python """
+        return prompt_template
   
     def __len__(self):
         return len(self.data)
   
     def __getitem__(self, idx):
-        
-        prom="""You are a highly skilled Python code generator. Your role is to generate efficient, clean, and correct Python functions based on the provided problem. Follow these specific guidelines carefully:
-1. Only write the Python function—no explanations, comments, or additional text.
-2. Ensure proper indentation and formatting for readability.
-3. The function should appear once, with no extraneous output.
-4. Do not provide any explanations or corrections.
-5. Stop after producing the first valid output.
-6. Make sure to generate the code in a similar fashion to the example below.
-7. Enclose the function in triple backticks with 'python' language specifier.
-
-For example:
-Question: Write a function to find the maximum run of uppercase characters in the given string.
-For example, this is how the function name and number of arguments should look like: max_run_uppercase('GeMKSForGERksISBESt') == 5
-Answer: 
-```python
-def max_run_uppercase(test_str):
-    cnt = 0
-    res = 0
-    for idx in range(len(test_str)):
-        if test_str[idx].isupper():
-            cnt += 1
-        else:
-            res = max(res, cnt)
-            cnt = 0
-    res = max(res, cnt)  # Check once more after the loop in case the string ends with an uppercase run
-    return res
-'''
-
-Now Write the code for the following question 
-"""
         self.count += 1
         self.count = self.count % self.batch_size
         # print(self.count)
@@ -301,8 +284,8 @@ Now Write the code for the following question
             self.code_ptr += 1
             self.code_ptr = self.code_ptr % self.len_data
             inp, output = self.process_code(id)  
-            token = self.tokenizer.encode(prom+inp, add_eos=True)
-            label = self.tokenizer.encode(prom+inp+output, add_eos=True)
+            token = self.tokenizer.encode(inp, add_eos=True)
+            label = self.tokenizer.encode(inp + output, add_eos=True)
           
             return {
               "tokens" : token,
@@ -322,7 +305,8 @@ Now Write the code for the following question
           
             self.aux_ptr += 1
             self.aux_ptr = self.aux_ptr % self.len_data
-            if random.random() > 0.5:
+            if random.random() > 0.4:
+                print("aux1")
               # aux_1
                 inp = self.json_data[str(task_id)]['a1']['tokens']
                 output = self.json_data[str(task_id)]['a1']['labels']
@@ -330,6 +314,7 @@ Now Write the code for the following question
                 
               #aux_2
                 n = len(self.json_data[str(task_id)]['a2'].keys())
+                print("aux2")
 
                 test_id = random.choice(range(n))
                 inp = self.json_data[str(task_id)]['a2'][str(test_id)]['tokens']
@@ -887,6 +872,53 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         del logits
 
         return loss
+    
+    
+    
+    def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+        # Both are shape [b, s]
+        tokens, labels = batch["tokens"], batch["labels"]
+        # self.generate(tokens)
+        # Get the attention mask and position ids from the dataset if they
+        # exist. Currently, only sample packing in PackedDataset returns these
+        mask = batch.get("mask", None)  # shape [b, s, s]
+        input_pos = batch.get("input_pos", None)  # shape [b, s]
+        
+        # print(self._tokenizer.decode(tokens[0].tolist()))
+        # print(self._tokenizer.decode(labels[0].tolist()))
+
+        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+        
+    
+        target_mask = self.create_target_mask(tokens, labels)
+
+    # Shift labels and logits
+        loss = self._loss_fn(logits, labels, target_mask)
+        
+        del logits, target_mask
+
+        return loss
+    
+    def create_target_mask(self, input_tokens: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    # Create a mask that's True for tokens we want to predict
+        batch_size, seq_length = input_tokens.shape
+        mask = torch.zeros_like(labels, dtype=torch.bool)
+    
+        for i in range(batch_size):
+        # Find the end of the actual input (excluding padding)
+            input_end = (input_tokens[i] != self._tokenizer.pad_id).sum()
+        
+        # Find the end of the actual labels (excluding padding)
+            label_end = (labels[i] != self._loss_fn.ignore_index).sum()
+        
+        # Set mask to True for tokens after input but before the end of actual labels
+            mask[i, input_end:label_end] = True
+    
+    # Optionally, exclude special tokens
+        mask &= labels != self._tokenizer.eos_id
+    # Add any other tokens you want to exclude
+    
+        return mask
 
     def train(self) -> None:
         """

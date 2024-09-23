@@ -23,7 +23,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /home/vdhee/scratch/LLMcode/Train/models-1/original/tokenizer.model
   max_seq_len: null
 
 # Dataset
@@ -38,18 +38,18 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  checkpoint_dir: /home/vdhee/scratch/LLMcode/Train/models-1/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  output_dir: /home/vdhee/scratch/LLMcode/Train/full_finetuning_results-3
   model_type: LLAMA3
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 2
-epochs: 3
+batch_size: 3
+epochs: 20
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5

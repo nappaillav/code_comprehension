@@ -12,6 +12,14 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 
+
+from typing import List, Dict
+import torch
+from torch.nn.utils.rnn import pad_sequence
+import torch.nn.functional as F
+
+CROSS_ENTROPY_IGNORE_IDX = -100  # Define your ignore index
+
 def padded_collate(
     batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
@@ -26,14 +34,14 @@ def padded_collate(
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
     Returns:
-        Dict[str, torch.Tensor]: Collated input and label tensors.
+        Dict[str, torch.Tensor]: Collated input, label tensors, and mask.
 
     Example:
         >>> token_pairs = [
         >>>    {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
         >>>    {"tokens": [7,], "labels": [10,]},
         >>> ]
-        >>> collated = padded_collate(
+        >>> collated = padded_collate_sft(
         >>>    batch=token_pairs,
         >>>    padding_idx=padding_idx,
         >>>    ignore_idx=ignore_idx,
@@ -42,8 +50,9 @@ def padded_collate(
         >>> tensor([[1, 2, 3], [7, 0, 0]])
         >>> collated["labels"]
         >>> tensor([[4, 5, 6], [10, -100, -100]])
+        >>> collated["mask"]
+        >>> tensor([[0, 0, 1], [0, 1, 0]])  # Example mask
     """
-    
     input_ids = pad_sequence(
         [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
@@ -69,4 +78,10 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
+        
+
+    # Create a mask that is 0 for input tokens (up to where the output starts) and padding
+
     return {"tokens": input_ids.long(), "labels": labels.long()}
+
+

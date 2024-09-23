@@ -135,7 +135,7 @@ class InferenceRecipe:
             return self._tokenizer.tokenize_messages(messages)[0]
 
     @torch.no_grad()
-    def generate(self, cfg, prompt1,ids_, prom):
+    def generate(self, cfg, prompt1):
         tokens = self.convert_prompt_to_tokens(
             prompt1, cfg.get("chat_format", None), cfg.get("instruct_template", None)
         )
@@ -179,14 +179,14 @@ class InferenceRecipe:
 
         logger.info(o)
         
-        result = {
-        "id": ids_,
-        "prompt": prompt1,
-        "final_answer": o
-    }
+    #     result = {
+    #     "id": ids_,
+    #     "prompt": prompt1,
+    #     "final_answer": o
+    # }
 
     # Append the result to the JSON file
-        append_to_json("/home/vdhee/scratch/LLMcode/Train/full_finetuning_results_json-2/output-0.5-1.0/output-humaneval.json", result)
+        # append_to_json("/home/vdhee/scratch/LLMcode/Train/full_finetuning_results_json-2/output-0.5-1.0/output-humaneval.json", result)
 
         model_size = sum(
             [
@@ -220,6 +220,10 @@ def append_to_json(file_path, data):
     # Write the updated data back to the file
     with open(file_path, "w") as f:
         json.dump(file_data, f, indent=4)
+        
+def apply_chat_template(user_prompt, assertion):
+        prompt_template = f"""<|start_header_id|>user<|end_header_id|>\n\n{user_prompt}\n\nYour code should satisfy the following assertion:\n{assertion}<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>\n\nHere is a solution to this programming problem:\n```python """
+        return prompt_template
 
 
 @config.parse
@@ -228,41 +232,35 @@ def main(cfg: DictConfig) -> None:
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     
-    prom="""You are a highly skilled Python code generator. Your role is to generate efficient, clean, and correct Python functions based on the provided problem. Follow these specific guidelines carefully:
-1. Only write the Python function—no explanations, comments, or additional text.
-2. Ensure proper indentation and formatting for readability.
-3. The function should appear once, with no extraneous output.
-4. Do not provide any explanations or corrections.
-5. Stop after producing the first valid output.
-6. Make sure to generate the code in a similar fashion to the example below.
-7. Enclose the function in triple backticks with 'python' language specifier.
+    ds=load_from_disk("/home/vdhee/scratch/LLMcode/Train/Dataset/mbpp2-full")
+    # lst=ds["test"]["prompt"]
+    pr="""<|start_header_id|>user<|end_header_id|>
 
-For example:
-Question: Write a function to find the maximum run of uppercase characters in the given string.
-For example, this is how the function name and number of arguments should look like: max_run_uppercase('GeMKSForGERksISBESt') == 5
-Answer: 
+You are a Python code analyzer. Given a question, Python code, sample input-output, and new inputs, predict the outputs. Follow these steps:
+1. Read the provided Python code and review the sample input-output pair.
+2. Predict outputs for the new inputs.
+
+Question: Write a python function to find the first repeated character in a given string.
+
+Ground Truth Code:
 ```python
-def max_run_uppercase(test_str):
-    cnt = 0
-    res = 0
-    for idx in range(len(test_str)):
-        if test_str[idx].isupper():
-            cnt += 1
-        else:
-            res = max(res, cnt)
-            cnt = 0
-    res = max(res, cnt)  # Check once more after the loop in case the string ends with an uppercase run
-    return res
-'''
+def first_repeated_char(str1):
+  for index,c in enumerate(str1):
+    if str1[:index+1].count(c) > 1:
+      return c
+```
 
-Now Write the code for the following question 
+Here are the sample known input and output pairs:
+input: "123123", the output is "1".
+Now predict the output values of these input variables given below:
+"abcabc" = ?
+"abc" = ?<|eot_id|>
 """
-    ds=load_from_disk("/home/vdhee/scratch/LLMcode/Train/Dataset/human_val")
-    lst=ds["test"]["prompt"]
-    for i in range(len(lst)):
-        #ques="".join(lst[i].split("\"\"\"")[1].split(">>>")[0].strip().split("\n"))
-        final_prompt=prom + "\nQuestion: " + lst[i] + "\nAnswer: "
-        recipe.generate(cfg,final_prompt,i,prom)
+    recipe.generate(cfg,pr)
+    # for i in range(len(lst)):
+    #     #ques="".join(lst[i].split("\"\"\"")[1].split(">>>")[0].strip().split("\n"))
+    #     final_prompt=prom + "\nQuestion: " + lst[i] + "\nAnswer: "
+    #     recipe.generate(cfg,final_prompt,i,prom)
     # lst=ds["test"]["text"]
     # ids=ds["test"]["task_id"]
     # test_lists=ds["test"]["test_list"]
