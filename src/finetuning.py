@@ -1,3 +1,5 @@
+import os 
+os.environ['HF_HUB_OFFLINE']="1"
 from transformers import BitsAndBytesConfig
 import torch
 import random, json
@@ -89,24 +91,41 @@ def sft_trainer(
     load_in_4bit = False,
     load_in_8bit = False,
     use_flash_attention_2 = False,
+    task = 'code',
 ):
     seed = int(random.random() * 10000)
     # Dataset 
-    ds = load_dataset('Valliappan/mbpp2')
-    new = concatenate_datasets([ds['train'], ds['test'], ds['validation']])
-
+    # ds = load_dataset('Valliappan/mbpp2')
+    # new = concatenate_datasets([ds['train'], ds['test'], ds['validation']])
+    if task == 'code':
+        print(f"loading the {task} task")
+        train = load_dataset('Valliappan/code', split='train')
+        valid = load_dataset('Valliappan/code', split='validation')
+    elif task == 'combined':
+        print(f"loading the {task} task")
+        train = load_dataset('Valliappan/combined', split='train')
+        valid = load_dataset('Valliappan/combined', split='validation')
+    elif task == 'aux':
+        print(f"loading the {task} task")
+        train = load_dataset('Valliappan/aux', split='train')
+        valid = load_dataset('Valliappan/aux', split='validation')
+    else:
+        print("Wrong Choice")    
+    print('Dataset Downloaded')
     tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side=padding_side)
 
     tokenizer.model_max_length = max_length
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
 
-    response_template_with_context = "\n### Answer:"  # We added context here: "\n". This is enough for this tokenizer
-    response_template_ids = tokenizer.encode(response_template_with_context, add_special_tokens=False)[2:]  # Now we have it like in the dataset texts: `[2277, 29937, 4007, 22137, 29901]`
-
+    response_template_with_context = "\n### Answer:\n"  # We added context here: "\n". This is enough for this tokenizer
+    response_template_ids = tokenizer.encode(response_template_with_context, add_special_tokens=False)[1:]  # Now we have it like in the dataset texts: `[2277, 29937, 4007, 22137, 29901]`
+    # response_template_with_context = "### Answer:"
     collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
 
-    dataset = CustomDataset(file_name=path)
+    # format function
+    # dataset = CustomDataset(file_name=path)
+
     # specify how to quantize the model
     if load_in_4bit:
         quantization_config = BitsAndBytesConfig(
@@ -129,31 +148,34 @@ def sft_trainer(
         device_map=device_map,
         quantization_config=quantization_config,
     )
+    print(model_kwargs)
 
-    output_dir = '/content/save'
+    output_dir = f'../logs/{model_id}_{task}'
 
     training_args = TrainingArguments(
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
+        per_device_train_batch_size=4,
+        per_device_eval_batch_size=4,
         gradient_accumulation_steps=32,
         gradient_checkpointing=True,
         warmup_steps=10,
-        num_train_epochs=10,
-        logging_steps=10,
-        save_steps=30,
+        num_train_epochs=100,
+        logging_steps=1,
+        eval_steps=50,
+        save_steps=50,
         learning_rate=5e-05,
         bf16=True,
+        do_eval=True,
         optim="adamw_torch",
         evaluation_strategy="steps",
         save_strategy="steps",
         output_dir=output_dir,
-        save_total_limit=3,
+        save_total_limit=4,
         overwrite_output_dir=True,
-        report_to="wandb" ,
+        report_to="tensorboard" ,
         run_name=f"Test{seed}",
         seed=seed,
-        push_to_hub=True,
-        hub_model_id=f'{model_id.split("/")[-1]}_coder',
+        # push_to_hub=True,
+        # hub_model_id=f'{model_id.split("/")[-1]}_coder',
         )
     
     # based on config
@@ -163,23 +185,40 @@ def sft_trainer(
             lora_dropout=0.1,
             bias="none",
             task_type="CAUSAL_LM",
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            modules_to_save=["lm_head", "embed_token"],
+            target_modules="all-linear",
     )
 
     trainer = SFTTrainer(
             model=model_id,
             model_init_kwargs=model_kwargs,
             args=training_args,
-            train_dataset=new,
-            # dataset_text_field="text",
+            train_dataset=train,
+            eval_dataset = valid,
+            dataset_text_field="text",
             tokenizer=tokenizer,
             peft_config=peft_config,
             max_seq_length=tokenizer.model_max_length,
-            formatting_func=dataset.formatting_prompts_func_code,
+            # formatting_func=dataset.formatting_prompts_func_code,
             data_collator=collator,
         )
-
+    print("Started Training")
     trainer.train()
+    # trainer.model.push_to_hub("llama3_2_3b_IT_coder_adapter")
+
     return trainer 
 
-trainer = sft_trainer()
+trainer = sft_trainer(
+                    model_id = "meta-llama/Llama-3.2-3B",
+                    max_length = 1024,
+                    path = './cot_data.json',
+                    padding_side = 'right',
+                    load_in_4bit = False,
+                    load_in_8bit = False,
+                    use_flash_attention_2 = True,
+                    task='aux'
+                )
+
+
+# if __name__ == '__main__':
+#     fire.Fire(sft_trainer)
