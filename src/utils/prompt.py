@@ -1,0 +1,189 @@
+EXAMPLE_1 = '''#Task:
+"""Predict the output of the python program"""
+ 
+import re
+def find_adverb_position(text):
+    for m in re.finditer(r"\w+ly", text):
+        return (m.start(), m.end(), m.group(0))
+
+print(find_adverb_position('room'))
+###Answer:
+Let's break down the execution of the given Python script step by step:
+
+1. **Import the `re` module**: This module provides support for regular expressions in Python.
+
+2. **Define the function `find_adverb_position(text)`**:
+   - The function takes a single argument `text`, which is expected to be a string.
+   - It uses `re.finditer()` to search for all occurrences of the pattern `\w+ly` in the input text. This pattern matches any word that ends with "ly".
+
+3. **Iterate over the matches**: 
+   - The `for` loop is set to iterate over the matches found by `re.finditer()`.
+   - The first match (if any) will be processed, and the function will return a tuple containing:
+     - The starting index of the match (`m.start()`),
+     - The ending index of the match (`m.end()`),
+     - The matched string itself (`m.group(0)`).
+
+4. **Call the function**: The function `find_adverb_position` is called with the argument `'room'`.
+
+5. **Check for matches**:
+   - The string `'room'` does not contain any words ending with "ly". Hence, `re.finditer()` will not find any matches.
+
+6. **Return value**: Since there are no matches, the `for` loop will not execute, and the function will implicitly return `None`.
+
+7. **Print the result**: The output of the function call is printed, which will be `None`.
+
+### Predicted Output:
+```python
+None
+```
+'''
+EXAMPLE_2 = '''#Task:
+"""Predict the output of the python program"""
+ 
+def find_solution(a, b, n):
+	i = 0
+	while i * a <= n:
+		if (n - (i * a)) % b == 0: 
+			return (i, (n - (i * a)) // b)
+		i = i + 1
+	return None
+
+print(find_solution(4000, 50, 4000))
+###Answer:
+Let's break down the execution of the provided Python script step-by-step:
+
+1. **Function Definition**: The function `find_solution(a, b, n)` is defined with three parameters: `a`, `b`, and `n`.
+
+2. **Initialization**: The variable `i` is initialized to `0`.
+
+3. **While Loop**: The loop `while i * a <= n` will continue as long as `i * a` is less than or equal to `n` (which is `4000` in this case).
+
+4. **First Iteration (i = 0)**:
+   - Compute `i * a`: `0 * 4000 = 0`, which is less than or equal to `4000`.
+   - Check the condition `(n - (i * a)) % b == 0`: 
+     - Compute `n - (i * a)`: `4000 - 0 = 4000`.
+     - Check if `4000 % 50 == 0`: This is true since `4000` is divisible by `50`.
+   - Since the condition is true, the function returns the tuple `(0, (4000 - 0) // 50)`:
+     - Compute `(4000 - 0) // 50`: `4000 // 50 = 80`.
+   - Thus, the function returns `(0, 80)`.
+
+5. **Print Statement**: The result of the function call `find_solution(4000, 50, 4000)` is printed.
+
+Since the function returns `(0, 80)`, the output of the script will be:
+
+### Predicted Output:
+```python
+(0, 80)
+```
+########################
+#Task:
+"""Predict the output of the python program"""
+ 
+def add_pairwise(test_tup):
+  return tuple(a + b for a, b in zip(test_tup, test_tup[1:]))
+
+print(add_pairwise([1, 2, -10, -10, 4, 5, 4]))
+###Answer:
+Let's break down the execution of the provided Python script step by step:
+
+1. **Function Definition**: The function `add_pairwise` is defined, which takes a single argument `test_tup`.
+
+2. **Input to the Function**: The function is called with the argument `[1, 2, -10, -10, 4, 5, 4]`.
+
+3. **Zip Function**: Inside the function, `zip(test_tup, test_tup[1:])` pairs elements of the list with their next elements:
+   - `test_tup` is `[1, 2, -10, -10, 4, 5, 4]`
+   - `test_tup[1:]` is `[2, -10, -10, 4, 5, 4]`
+   - The result of `zip` will be: `[(1, 2), (2, -10), (-10, -10), (-10, 4), (4, 5), (5, 4)]`
+
+4. **List Comprehension**: A generator expression `(a + b for a, b in zip(...))` computes the sum of each pair:
+   - For `(1, 2)`, the sum is `3`
+   - For `(2, -10)`, the sum is `-8`
+   - For `(-10, -10)`, the sum is `-20`
+   - For `(-10, 4)`, the sum is `-6`
+   - For `(4, 5)`, the sum is `9`
+   - For `(5, 4)`, the sum is `9`
+
+5. **Tuple Creation**: The sums are collected into a tuple, resulting in `(3, -8, -20, -6, 9, 9)`.
+
+6. **Return Value**: The function returns the tuple `(3, -8, -20, -6, 9, 9)`.
+
+7. **Print Statement**: The returned value is printed.
+
+### Predicted Output:
+```python
+(3, -8, -20, -6, 9, 9)
+```
+'''
+
+def get_prompt(data, task):
+    code = data['code']
+    test_case_id = random.choice(range(len(data['Test Cases'])))
+    key = f'Test Case {test_case_id + 1}'
+    
+    while not key in data:
+        test_case_id = random.choice(range(len(data['Test Cases'])))
+        key = f'Test Case {test_case_id + 1}'
+    
+    test_case = data['Test Cases'][test_case_id]
+    cot = data[key][13:]
+    question = data['Prompt']
+
+    if task == 'code':
+        prompt =f"""Please provide a self-contained Python script that solves the following problem in a markdown code block:
+```
+{question}
+{test_case}
+```
+### Answer:
+Below is a Python script with a self-contained function that solves the problem and passes corresponding tests:
+```python
+{code}
+```
+"""     
+        # print(prompt)
+    else:
+        prompt =f"""Please provide a detailed explanation of the Python script that solves the following problem in a markdown code block:
+```
+{question}
+{test_case}
+```
+```python
+{code}
+```
+### Answer:
+Below is a detailed step by step explanation of the python script for the given test case:
+{cot}
+"""
+        # print(prompt)
+    return prompt
+ 
+
+
+class CustomDataset:
+    def __init__(self, file_name, aux_split = 0.5):
+        with open(file_name, 'rb') as f:
+            data = json.load(f)
+        self.task2id = {i['question_id']:i for i in data}
+        self.count = 0 
+        self.task = []
+    def formatting_prompts_func_code(self, example):
+        output_texts = []
+        # print(example['task_id'])
+        for i in example['task_id']:
+            
+            task_id = i
+            # print(task_id)
+            # print(self.task2id[task_id].keys())
+            self.task.append(task_id)
+            if self.count % 2 == 0:
+                # code task
+                text = get_prompt(self.task2id[task_id], task='code')
+            else:
+                # aux
+                text = get_prompt(self.task2id[task_id], task='aux')
+            output_texts.append(text)
+            
+            self.count += 1
+        print(len(output_texts))    
+        return output_texts
+

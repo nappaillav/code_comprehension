@@ -13,13 +13,13 @@ from datasets import load_dataset
 
 # Loading base Mistral model, along with custom code that enables bidirectional connections in decoder-only LLMs.
 tokenizer = AutoTokenizer.from_pretrained(
-    "meta-llama/Meta-Llama-3-70B-Instruct", token="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"
+    "meta-llama/Llama-3.2-3B", token="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"
 )
 config = AutoConfig.from_pretrained(
-    "meta-llama/Meta-Llama-3-70B-Instruct", trust_remote_code=True, token="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"
+    "meta-llama/Llama-3.2-3B", trust_remote_code=True, token="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"
 )
 model = AutoModel.from_pretrained(
-    "meta-llama/Meta-Llama-3-70B-Instruct",
+    "meta-llama/Llama-3.2-3B",
     trust_remote_code=True,
     config=config,
     torch_dtype=torch.bfloat16,

@@ -170,3 +170,16 @@ logs/
 .cache/
 *.out
 
+eval/*
+results/*
+result/*
+tmp/*
+
+src/wandb/*
+*.json
+*.zip
+*.jsonl
+
+*.txt
+*.pkl
+
